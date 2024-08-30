@@ -284,16 +284,24 @@
 
 ;;; enum (in a set of allowed values)
 
+;; breaks if :vs is set manually without reconstructing via s/enum
+(defn- usually-ordered-enum-form [{:keys [vs] :as enum}]
+  (or (-> enum meta ::form-hint (get vs) force)
+      (cons 'enum vs)))
+
 (macros/defrecord-schema EnumSchema [vs]
   Schema
   (spec [this] (leaf/leaf-spec (spec/precondition this #(contains? vs %) #(list vs %))))
-  (explain [this] (cons 'enum vs)))
+  (explain [this] (usually-ordered-enum-form this)))
 
 (clojure.core/defn enum
   "A value that must be = to some element of vs."
   [& vs]
-  (EnumSchema. (set vs)))
-
+  (let [svs (set vs)]
+    ;; TODO it would be nice to use the (EnumSchema. vs _meta _ext) ctor but it doesn't work yet in bb
+    ;; https://github.com/babashka/sci/issues/928
+    (-> (EnumSchema. svs)
+        (with-meta {::form-hint {svs (delay (seq (into ['enum] (distinct) vs)))}}))))
 
 ;;; pred (matches all values for which p? returns truthy)
 
