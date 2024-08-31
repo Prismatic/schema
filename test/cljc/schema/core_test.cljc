@@ -133,7 +133,29 @@
     (valid! schema 1)
     (invalid! schema :c)
     (invalid! (s/enum :a) 2 "(not (#{:a} 2))")
-    (is (= '(1 :a :b enum) (sort-by str (s/explain schema))))))
+    (is (= '(enum :a :b 1) (s/explain schema))))
+  (is (= (cons 'enum (range 1000)) (s/explain (apply s/enum (range 1000)))))
+  (testing "prints as if (distinct vs), which preserves original order"
+    (is (= '(enum 1 2 3 4) (s/explain (s/enum 1 2 1 3 1 4)))))
+  (testing "equality still works if implementation details are exploited"
+    (is (= (update (s/enum 1 2 3) :vs conj 4)
+           (update (s/enum 1 2 3 4 5) :vs disj 5))))
+  (testing "still prints correctly (albeit unordered) if implementation details are exploited"
+    (dotimes [_ 100]
+      (let [[a b c] (repeatedly #(rand-nth
+                                   [(gensym)
+                                    (str (gensym))
+                                    (keyword (gensym))]))
+            _ (assert (distinct? a b c))
+            e (s/enum a b)
+            _ (testing "prints in order"
+                (is (= (list 'enum a b) (s/explain e))))
+            e (update e :vs conj c)
+            _ (testing "adding an extra entry using implementation details just prints using the set's order"
+                (is (= (cons 'enum (:vs e)) (s/explain e))))
+            e (update e :vs disj c)
+            _ (testing "resetting :vs preserves the original printing order"
+                (is (= (list 'enum a b) (s/explain (update e :vs disj c)))))]))))
 
 (deftest pred-test
   (let [schema (s/pred odd? 'odd?)]

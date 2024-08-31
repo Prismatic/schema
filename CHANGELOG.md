@@ -1,3 +1,6 @@
+## NEXT
+ * [#453](https://github.com/plumatic/schema/issues/453): Preserve `s/enum` order during printing
+
 ## 1.4.1 (`2022-09-29`)
  * [#449](https://github.com/plumatic/schema/issues/449): Fix bad jsdoc
 
